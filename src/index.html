@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Persoo Instant Search example</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+    <meta name="description" content="preact-boilerplate">
+    <meta name="msapplication-TileColor" content="#673ab8">
+    <meta name="msapplication-TileImage" content="./assets/icons/mstile-150x150.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="preact-boilerplate">
+    <meta name="application-name" content="preact-boilerplate">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="theme-color" content="#673ab8">
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="./assets/icons/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="/assets/icons/favicon-16x16.png" sizes="16x16">
+    <link rel="manifest" href="./manifest.json">
+
+    <!-- use your own CSS, you can edit this basic style -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/instantsearch.js/1/instantsearch.min.css" />
+
+
+    <script type='text/javascript'>
+        /* Persoo account for testing real requests */
+        dataLayer = [{
+            pageType: 'search'
+        }];
+        var persooConfig = {
+            apikey: 'n6i5ne3i0p2tkkvm1275lapv',
+            persooName: 'persoo',
+            dataLayerName: 'dataLayer',
+            settings_tolerance: 2000,  // for loading persoo.js
+            personalizations_tolerance: 2500,    // for showing personalizations
+        };
+
+        /*! Persoo js client 2015-03-16 */
+        var persooLoader=function(a,b,c,d,e){var f=d.persooName,g='_persoo_hide_body';return{hideBody:
+        function(){var b=a.createElement('style'),c='body{opacity:0 !important;filter:alpha(opacity=0)'
+        +' !important;background:none !important;}',d=a.getElementsByTagName('head')[0];b.setAttribute(
+        'id',g),b.setAttribute('type','text/css'),b.styleSheet?b.styleSheet.cssText=c:b.appendChild(
+        a.createTextNode(c)),d.appendChild(b)},finish:function(){if(!c){c=!0;var b=a.getElementById(g);b&&
+        b.parentNode.removeChild(b)}},loadScript:function(b){var c=a.createElement('script');c.src=b,c.type
+        ='text/javascript',c.onerror=function(){persooLoader.finish()},a.getElementsByTagName('head')[0
+        ].appendChild(c)},init:function(){b[f]=b[f]||function(){(b[f].q=b[f].q||[]).push([].slice.call(
+        arguments))},b[f].l=1*new Date,b[f].apikey=d.apikey,b[f].dataLayerName=d.dataLayerName;var c=
+        a.cookie.match('(^|; )'+e+'=([^;]*)'),g=location.search.match('[?&]'+e+'=([^&]*)'),h=g?g[1]:c?c[2]:
+        'p';d.settings_tolerance>0&&(setTimeout(this.finish,d.settings_tolerance),this.hideBody());var i=(
+        d.scriptsHostname||'//scripts.persoo.cz/')+d.apikey+'/'+h;this.loadScript(i+'/actions.js'),
+        this.loadScript(i+'/persoo.js')}}}(document,window,!1,persooConfig,'persooEnvironment');persooLoader.init();
+    </script>
+</head>
+<body>
+    <div id="mainContent">
+        <h1>Persoo Search Results Demo</h1>
+        <div style="display:flex">
+            <div style="flex: 1;">
+                <p>Filters:</p>
+                <input type="text" id="search-box" />
+                <div id="categories-container"></div>
+                <div id="brands-container--menu"></div>
+                <div id="brands-container--refinementList"></div>
+            </div>
+            <div style="flex: 4;">
+                <p>Results:</p>
+                <div id="hits-container"></div>
+                <div id="pagination-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    /* Notes:
+        https://community.algolia.com/instantsearch.js/documentation/
+        https://community.algolia.com/algoliasearch-helper-js/concepts.html
+    */
+        setTimeout(function() {
+            var persooAlgorithmID = "df76f605499f42e092a888cc62c057ae";
+            var search = persooInstantSearch({
+              algorithmID: "df76f605499f42e092a888cc62c057ae"
+            });
+
+            search.addWidget(
+            persooInstantSearch.widgets.searchBox({
+              container: '#search-box',
+              placeholder: 'Search for products...'
+            })
+            );
+
+            search.addWidget(
+            persooInstantSearch.widgets.hits({
+              container: '#hits-container',
+              hitsPerPage: 10,
+              templates: {
+                item: '<img src={{imageLink}}><div>{{title}}</div><div>{{price}} Kč</div>'
+              }
+            })
+            );
+
+            search.addWidget(
+            persooInstantSearch.widgets.pagination({
+              container: '#pagination-container'
+            })
+            );
+            /*
+            search.addWidget(
+            persooInstantSearch.widgets.menu({
+              container: '#categories-container',
+              attributeName: 'productType',
+              autoHideContainer: false,
+              limit: 10,
+              templates: {
+                header: 'Categories'
+              }
+            })
+            );
+            */
+
+            search.addWidget(
+            persooInstantSearch.widgets.hierarchicalMenu({
+            container: '#categories-container',
+            attributes: ['category_level0', 'category_level1', 'category_level2'],
+            templates: {
+              header: 'Hierarchical categories'
+            }
+            })
+            );
+
+            search.addWidget(
+            persooInstantSearch.widgets.refinementList({
+              container: '#brands-container--refinementList',
+              attributeName: 'brand',
+              operator: 'or',
+              limit: 5,
+              templates: {
+                header: 'Brands (refinementList)'
+              },
+              showMore: {
+                limit: 15
+              }
+            })
+            );
+            /*
+            search.addWidget(
+            persooInstantSearch.widgets.menu({
+              container: '#brands-container--menu',
+              attributeName: 'brand',
+              limit: 5,
+              templates: {
+                header: 'Brands (menu)'
+              }
+            })
+            );
+            */
+            search.start();
+        }, 1000);
+    </script>
+    <style>
+        .ais-hits {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .ais-hits--item {
+            width: 200px;
+            height: 200px;
+            border: 1px solid grey;
+            margin: 0 10px 10px 0;
+            text-align: center;
+        }
+        .ais-hits--item > img {
+            max-width: 150px;
+            max-height: 150px;
+        }
+    </style>
+</body>
+</html>

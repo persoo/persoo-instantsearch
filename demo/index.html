@@ -1,0 +1,270 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/instantsearch.js/1/instantsearch.min.css" />
+    <title>Persoo Instant Search example</title>
+  </head>
+  <body>
+    <div style="display:flex">
+        <div style="flex: 1;">
+            <p>Filters:</p>
+            <input type="text" id="search-box" />
+            <div id="categories-container"></div>
+            <div id="brands-container--menu"></div>
+            <div id="brands-container--refinementList"></div>
+        </div>
+        <div style="flex: 4;">
+            <p>Results:</p>
+            <div id="hits-container"></div>
+            <div id="pagination-container"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/instantsearch.js/1/instantsearch.min.js"></script>
+
+    <script type='text/javascript'>
+        /* Persoo account for testing real requests */
+        dataLayer = [{
+            pageType: 'search'
+        }];
+        var persooConfig = {
+            apikey: 'n6i5ne3i0p2tkkvm1275lapv',
+            persooName: 'persoo',
+            dataLayerName: 'dataLayer',
+            settings_tolerance: 2000,  // for loading persoo.js
+            personalizations_tolerance: 2500,    // for showing personalizations
+        };
+
+        /*! Persoo js client 2015-03-16 */
+        var persooLoader=function(a,b,c,d,e){var f=d.persooName,g='_persoo_hide_body';return{hideBody:
+        function(){var b=a.createElement('style'),c='body{opacity:0 !important;filter:alpha(opacity=0)'
+        +' !important;background:none !important;}',d=a.getElementsByTagName('head')[0];b.setAttribute(
+        'id',g),b.setAttribute('type','text/css'),b.styleSheet?b.styleSheet.cssText=c:b.appendChild(
+        a.createTextNode(c)),d.appendChild(b)},finish:function(){if(!c){c=!0;var b=a.getElementById(g);b&&
+        b.parentNode.removeChild(b)}},loadScript:function(b){var c=a.createElement('script');c.src=b,c.type
+        ='text/javascript',c.onerror=function(){persooLoader.finish()},a.getElementsByTagName('head')[0
+        ].appendChild(c)},init:function(){b[f]=b[f]||function(){(b[f].q=b[f].q||[]).push([].slice.call(
+        arguments))},b[f].l=1*new Date,b[f].apikey=d.apikey,b[f].dataLayerName=d.dataLayerName;var c=
+        a.cookie.match('(^|; )'+e+'=([^;]*)'),g=location.search.match('[?&]'+e+'=([^&]*)'),h=g?g[1]:c?c[2]:
+        'p';d.settings_tolerance>0&&(setTimeout(this.finish,d.settings_tolerance),this.hideBody());var i=(
+        d.scriptsHostname||'//scripts.persoo.cz/')+d.apikey+'/'+h;this.loadScript(i+'/actions.js'),
+        this.loadScript(i+'/persoo.js')}}}(document,window,!1,persooConfig,'persooEnvironment');persooLoader.init();
+    </script>
+
+    <script>
+/* Notes:
+    https://community.algolia.com/instantsearch.js/documentation/
+    https://community.algolia.com/algoliasearch-helper-js/concepts.html
+*/
+
+    var persooAlgorithmID = "df76f605499f42e092a888cc62c057ae";
+
+    function translateResponse(data, persooEventProps) {
+        function translateAggregationGroup(aggregationsGroup) {
+            var map = {};
+            for (var i = 0; i < aggregationsGroup.length; i++) {
+                var aggItem = aggregationsGroup[i];
+                map[aggItem.value] = aggItem.count; // note: values with '>' will not be displayed
+            }
+            return map;
+        }
+        var result =  {
+            hits: data.items,
+            hitsPerPage: data.pageSize,
+            page: data.page,
+            nbHits: data.totalHits,
+            nbPages: data.pages,
+            query: persooEventProps.query,
+            index: persooEventProps.index,
+            facets: {}
+        };
+        for (var group in data.aggregations) {
+            if (persooEventProps.includeAggregations.indexOf(group) >= 0) {
+                result.facets[group] = translateAggregationGroup(data.aggregations[group]);
+            }
+        }
+        return result;
+    }
+
+    function createMergePersooResponsesToBatchCallback(algoliaCallback, requestsCount) {
+        var receivedRequestCount = 0;
+        var results = [];
+        var isError = false;
+
+        // FIXME pass eventNumber not to mix requests
+        return function(persooEventProps, data){
+            receivedRequestCount ++;
+            results.push(translateResponse(data, persooEventProps));
+             // TODO handle empty data
+             // TODO expecting formattedResponse = a {query: undefined, parsedQuery: undefined, hits: undefined, index: undefined, hitsPerPage: undefined…},
+             console.log('... Receiving data from Persoo: '+ JSON.stringify(data.items.length) + ' items.');
+             if (receivedRequestCount >= requestsCount) {
+                 algoliaCallback(isError, {results: results});
+             }
+        }
+    }
+
+    var persooCustomClient = {
+        addAlgoliaAgent: function(){},
+        search(requests, algoliaCallback) {
+                console.log('persooCustomClient.search(' + JSON.stringify(requests) + ')');
+
+                // Algolia Client accepts batch requests, i.e. list of requests, one request is i.e.
+                // [{"indexName":"YourIndexName","params":{"query":"a","hitsPerPage":20,"page":0,"facets":[],"tagFilters":""}}]
+                var requestsCount = requests.length;
+                var mergeCallback = createMergePersooResponsesToBatchCallback(algoliaCallback, requestsCount, persooProps)
+                for (var i = 0; i < requestsCount; i++) {
+                    var request = requests[i];
+                    var indexName = request.indexName;
+                    var params = request.params;
+
+                    var persooProps = {
+                        _e: "getRecommendation",
+                        _w: "getRecommendation",
+                        algorithmID: persooAlgorithmID,
+                        query: params.query,
+                        pageSize: params.hitsPerPage,
+                        page: params.page,
+                        index: "products",
+
+                        maxValuesPerFacet: params.maxValuesPerFacet,
+                        includeAggregations: params.facets || []
+                        // includeFields: []
+                    };
+                    // translate
+                    //     "facetFilters":[["key:value1", "key:value2"]]}
+                    // to
+                    //     persooProps[key]: ["value1", "value2"]
+                    var facetFilters = params.facetFilters || [];
+                    for (var j = 0; j < facetFilters.length; j++) {
+                        var facetFilter = facetFilters[j];
+                        for (var k = 0; k < facetFilter.length; k++) {
+                            var filterItem = facetFilters[j][k];
+                            var seperatorPos = filterItem.indexOf(':');
+                            var field = filterItem.substring(0, seperatorPos);
+                            var value = filterItem.substring(seperatorPos + 1);
+
+                            // join values with the same key to array
+                            if (persooProps[field]) {
+                                if (Array.isArray(persooProps[field])) {
+                                    persooProps[field].push(value);
+                                } else {
+                                    persooProps[field] = [persooProps[field], value];
+                                }
+                            } else {
+                                persooProps[field] = value;
+                            }
+                        }
+                    }
+
+                    console.log('... persoo.send('  + JSON.stringify(persooProps) + ')');
+                    persoo('send', persooProps, mergeCallback.bind(this, persooProps) );
+                }
+        }
+    };
+    </script>
+
+
+
+
+    <script>
+      var search = instantsearch({
+        appId: 'YourApplicationID',
+        apiKey: 'YourSearchOnlyAPIKey',
+        indexName: 'YourIndexName',
+        createAlgoliaClient: function(algoliasearch, appId, apiKey) { return persooCustomClient; }
+      });
+
+      search.addWidget(
+        instantsearch.widgets.searchBox({
+          container: '#search-box',
+          placeholder: 'Search for products...'
+        })
+      );
+
+      search.addWidget(
+        instantsearch.widgets.hits({
+          container: '#hits-container',
+          hitsPerPage: 10,
+          templates: {
+            item: '<img src={{imageLink}}><div>{{title}}</div><div>{{price}} Kč</div>'
+          }
+        })
+      );
+
+      search.addWidget(
+        instantsearch.widgets.pagination({
+          container: '#pagination-container'
+        })
+      );
+/*
+      search.addWidget(
+        instantsearch.widgets.menu({
+          container: '#categories-container',
+          attributeName: 'productType',
+          autoHideContainer: false,
+          limit: 10,
+          templates: {
+            header: 'Categories'
+          }
+        })
+      );
+*/
+
+    search.addWidget(
+      instantsearch.widgets.hierarchicalMenu({
+        container: '#categories-container',
+        attributes: ['category_level0', 'category_level1', 'category_level2'],
+        templates: {
+          header: 'Hierarchical categories'
+        }
+      })
+    );
+
+     search.addWidget(
+        instantsearch.widgets.refinementList({
+          container: '#brands-container--refinementList',
+          attributeName: 'brand',
+          operator: 'or',
+          limit: 5,
+          templates: {
+            header: 'Brands (refinementList)'
+          },
+          showMore: {
+            limit: 15
+          }
+        })
+      );
+/*
+      search.addWidget(
+        instantsearch.widgets.menu({
+          container: '#brands-container--menu',
+          attributeName: 'brand',
+          limit: 5,
+          templates: {
+            header: 'Brands (menu)'
+          }
+        })
+      );
+*/
+      search.start();
+    </script>
+    <style>
+        .ais-hits {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .ais-hits--item {
+            width: 200px;
+            height: 200px;
+            border: 1px solid grey;
+            margin: 0 10px 10px 0;
+            text-align: center;
+        }
+        .ais-hits--item > img {
+            max-width: 150px;
+            max-height: 150px;
+        }
+    </style>
+  </body>
+</html>
