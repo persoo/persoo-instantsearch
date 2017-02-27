@@ -10,7 +10,7 @@ const ENV = process.env.NODE_ENV || 'development';
 
 module.exports = {
     context: path.resolve(__dirname, "src"),
-    entry: [/*'./instantsearch/instantsearch.js',*/ './index.js'],
+    entry: ['./index.js'],
 
     output: {
         path: path.resolve(__dirname, "build"),

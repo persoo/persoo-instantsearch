@@ -1,26 +1,28 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-  <head>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/instantsearch.js/1/instantsearch.min.css" />
+<head>
+    <meta charset="utf-8">
     <title>Persoo Instant Search example</title>
-  </head>
-  <body>
-    <div style="display:flex">
-        <div style="flex: 1;">
-            <p>Filters:</p>
-            <input type="text" id="search-box" />
-            <div id="categories-container"></div>
-            <div id="brands-container--menu"></div>
-            <div id="brands-container--refinementList"></div>
-        </div>
-        <div style="flex: 4;">
-            <p>Results:</p>
-            <div id="hits-container"></div>
-            <div id="pagination-container"></div>
-        </div>
-    </div>
 
-    <script src="https://cdn.jsdelivr.net/instantsearch.js/1/instantsearch.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+    <meta name="description" content="preact-boilerplate">
+    <meta name="msapplication-TileColor" content="#673ab8">
+    <meta name="msapplication-TileImage" content="./assets/icons/mstile-150x150.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="preact-boilerplate">
+    <meta name="application-name" content="preact-boilerplate">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="theme-color" content="#673ab8">
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="./assets/icons/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="/assets/icons/favicon-16x16.png" sizes="16x16">
+    <link rel="manifest" href="./manifest.json">
+
+    <!-- use your own CSS, you can edit this basic style -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/instantsearch.js/1/instantsearch.min.css" />
+
+    <script type="text/javascript" src="../dist/persooInstantSearch.js"></script>
 
     <script type='text/javascript'>
         /* Persoo account for testing real requests */
@@ -50,204 +52,180 @@
         d.scriptsHostname||'//scripts.persoo.cz/')+d.apikey+'/'+h;this.loadScript(i+'/actions.js'),
         this.loadScript(i+'/persoo.js')}}}(document,window,!1,persooConfig,'persooEnvironment');persooLoader.init();
     </script>
+</head>
+<body>
+    <div id="mainContent">
+        <h1>Persoo Search Results Demo</h1>
+        <div style="display:flex">
+            <div id="filters" style="flex: 1;">
+                <p>Filters:</p>
+                <input type="text" id="search-box" />
+                <div id="clear-all"></div>
+                <div id="current-refined-values"></div>
+                <div id="categories-container"></div>
+                <div id="brands-container--menu"></div>
+                <div id="brands-container--refinementList"></div>
+                <div id="gender-container--refinementList"></div>
+            </div>
+            <div style="flex: 4;">
+                <p>Results:</p>
+                <div id="hits-container"></div>
+                <div style="display: flex">
+                    <div id="pagination-container" style="flex:1;"></div>
+                    <div id="hits-per-page-selector" style="flex:1;margin:auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        #filters > div {
+            margin-bottom: 20px;
+        }
+    </style>
 
     <script>
-/* Notes:
-    https://community.algolia.com/instantsearch.js/documentation/
-    https://community.algolia.com/algoliasearch-helper-js/concepts.html
-*/
+    /* Notes:
+        https://community.algolia.com/instantsearch.js/documentation/
+        https://community.algolia.com/algoliasearch-helper-js/concepts.html
 
-    var persooAlgorithmID = "df76f605499f42e092a888cc62c057ae";
+        Example CSS
+        https://community.algolia.com/instantsearch.js/examples/e-commerce/main.css
+    */
+        setTimeout(function() {
+            var persooAlgorithmID = "df76f605499f42e092a888cc62c057ae";
+            var search = persooInstantSearch({
+              algorithmID: "df76f605499f42e092a888cc62c057ae"
+            });
 
-    function translateResponse(data, persooEventProps) {
-        function translateAggregationGroup(aggregationsGroup) {
-            var map = {};
-            for (var i = 0; i < aggregationsGroup.length; i++) {
-                var aggItem = aggregationsGroup[i];
-                map[aggItem.value] = aggItem.count; // note: values with '>' will not be displayed
-            }
-            return map;
-        }
-        var result =  {
-            hits: data.items,
-            hitsPerPage: data.pageSize,
-            page: data.page,
-            nbHits: data.totalHits,
-            nbPages: data.pages,
-            query: persooEventProps.query,
-            index: persooEventProps.index,
-            facets: {}
-        };
-        for (var group in data.aggregations) {
-            if (persooEventProps.includeAggregations.indexOf(group) >= 0) {
-                result.facets[group] = translateAggregationGroup(data.aggregations[group]);
-            }
-        }
-        return result;
-    }
+            search.addWidget(
+                persooInstantSearch.widgets.searchBox({
+                    container: '#search-box',
+                    placeholder: 'Search for products...'
+                })
+            );
 
-    function createMergePersooResponsesToBatchCallback(algoliaCallback, requestsCount) {
-        var receivedRequestCount = 0;
-        var results = [];
-        var isError = false;
-
-        // FIXME pass eventNumber not to mix requests
-        return function(persooEventProps, data){
-            receivedRequestCount ++;
-            results.push(translateResponse(data, persooEventProps));
-             // TODO handle empty data
-             // TODO expecting formattedResponse = a {query: undefined, parsedQuery: undefined, hits: undefined, index: undefined, hitsPerPage: undefined…},
-             console.log('... Receiving data from Persoo: '+ JSON.stringify(data.items.length) + ' items.');
-             if (receivedRequestCount >= requestsCount) {
-                 algoliaCallback(isError, {results: results});
-             }
-        }
-    }
-
-    var persooCustomClient = {
-        addAlgoliaAgent: function(){},
-        search(requests, algoliaCallback) {
-                console.log('persooCustomClient.search(' + JSON.stringify(requests) + ')');
-
-                // Algolia Client accepts batch requests, i.e. list of requests, one request is i.e.
-                // [{"indexName":"YourIndexName","params":{"query":"a","hitsPerPage":20,"page":0,"facets":[],"tagFilters":""}}]
-                var requestsCount = requests.length;
-                var mergeCallback = createMergePersooResponsesToBatchCallback(algoliaCallback, requestsCount, persooProps)
-                for (var i = 0; i < requestsCount; i++) {
-                    var request = requests[i];
-                    var indexName = request.indexName;
-                    var params = request.params;
-
-                    var persooProps = {
-                        _e: "getRecommendation",
-                        _w: "getRecommendation",
-                        algorithmID: persooAlgorithmID,
-                        query: params.query,
-                        pageSize: params.hitsPerPage,
-                        page: params.page,
-                        index: "products",
-
-                        maxValuesPerFacet: params.maxValuesPerFacet,
-                        includeAggregations: params.facets || []
-                        // includeFields: []
-                    };
-                    // translate
-                    //     "facetFilters":[["key:value1", "key:value2"]]}
-                    // to
-                    //     persooProps[key]: ["value1", "value2"]
-                    var facetFilters = params.facetFilters || [];
-                    for (var j = 0; j < facetFilters.length; j++) {
-                        var facetFilter = facetFilters[j];
-                        for (var k = 0; k < facetFilter.length; k++) {
-                            var filterItem = facetFilters[j][k];
-                            var seperatorPos = filterItem.indexOf(':');
-                            var field = filterItem.substring(0, seperatorPos);
-                            var value = filterItem.substring(seperatorPos + 1);
-
-                            // join values with the same key to array
-                            if (persooProps[field]) {
-                                if (Array.isArray(persooProps[field])) {
-                                    persooProps[field].push(value);
-                                } else {
-                                    persooProps[field] = [persooProps[field], value];
-                                }
-                            } else {
-                                persooProps[field] = value;
-                            }
-                        }
+            search.addWidget(
+                persooInstantSearch.widgets.clearAll({
+                    container: '#clear-all',
+                    templates: {
+                        link: 'Reset everything but fulltext'
+                    },
+                    autoHideContainer: false
+                })
+            );
+            search.addWidget(
+                persooInstantSearch.widgets.currentRefinedValues({
+                    container: '#current-refined-values',
+                    clearAll: 'after',
+                    cssClasses: {
+                        count: "facet-count"
                     }
+                })
+            );
 
-                    console.log('... persoo.send('  + JSON.stringify(persooProps) + ')');
-                    persoo('send', persooProps, mergeCallback.bind(this, persooProps) );
-                }
-        }
-    };
-    </script>
+            search.addWidget(
+                persooInstantSearch.widgets.hits({
+                    container: '#hits-container',
+                    hitsPerPage: 12,
+                    templates: {
+                        item: '<img src={{imageLink}}><div title={{description}}>{{title}}</div><div>{{price}} Kč</div>'
+                    }
+                })
+            );
 
+            search.addWidget(
+                persooInstantSearch.widgets.pagination({
+                    container: '#pagination-container'
+                })
+            );
+            search.addWidget(
+                persooInstantSearch.widgets.hitsPerPageSelector({
+                    container: '#hits-per-page-selector',
+                    options: [
+                        {value: 6, label: '6 per page'},
+                        {value: 12, label: '12 per page'},
+                        {value: 24, label: '24 per page'},
+                        {value: 30, label: '30 per page'}
+                    ]
+                    // default is defined in hits widget
+                })
+            );
 
+            /*
+            search.addWidget(
+            persooInstantSearch.widgets.menu({
+              container: '#categories-container',
+              attributeName: 'productType',
+              autoHideContainer: false,
+              limit: 10,
+              templates: {
+                header: 'Categories'
+              }
+            })
+            );
+            */
 
+            search.addWidget(
+                persooInstantSearch.widgets.hierarchicalMenu({
+                    container: '#categories-container',
+                    attributes: ['category_level0', 'category_level1', 'category_level2'],
+                    templates: {
+                        header: 'Hierarchical categories'
+                    },
+                    cssClasses: {
+                        count: "facet-count"
+                    }
+                })
+            );
 
-    <script>
-      var search = instantsearch({
-        appId: 'YourApplicationID',
-        apiKey: 'YourSearchOnlyAPIKey',
-        indexName: 'YourIndexName',
-        createAlgoliaClient: function(algoliasearch, appId, apiKey) { return persooCustomClient; }
-      });
+            search.addWidget(
+                persooInstantSearch.widgets.refinementList({
+                    container: '#brands-container--refinementList',
+                    attributeName: 'brand',
+                    operator: 'or',
+                    limit: 5,
+                    templates: {
+                        header: 'Brands (refinementList)'
+                    },
+                    showMore: {
+                        limit: 15
+                    },
+                    cssClasses: {
+                        count: "facet-count"
+                    }
+                })
+            );
 
-      search.addWidget(
-        instantsearch.widgets.searchBox({
-          container: '#search-box',
-          placeholder: 'Search for products...'
-        })
-      );
+            search.addWidget(
+                persooInstantSearch.widgets.refinementList({
+                    container: '#gender-container--refinementList',
+                    attributeName: 'gender',
+                    operator: 'or',
+                    limit: 5,
+                    templates: {
+                        header: 'Gender (refinementList)'
+                    },
+                    showMore: false,
+                    cssClasses: {
+                        count: "facet-count"
+                    }
+                })
+            );
 
-      search.addWidget(
-        instantsearch.widgets.hits({
-          container: '#hits-container',
-          hitsPerPage: 10,
-          templates: {
-            item: '<img src={{imageLink}}><div>{{title}}</div><div>{{price}} Kč</div>'
-          }
-        })
-      );
-
-      search.addWidget(
-        instantsearch.widgets.pagination({
-          container: '#pagination-container'
-        })
-      );
-/*
-      search.addWidget(
-        instantsearch.widgets.menu({
-          container: '#categories-container',
-          attributeName: 'productType',
-          autoHideContainer: false,
-          limit: 10,
-          templates: {
-            header: 'Categories'
-          }
-        })
-      );
-*/
-
-    search.addWidget(
-      instantsearch.widgets.hierarchicalMenu({
-        container: '#categories-container',
-        attributes: ['category_level0', 'category_level1', 'category_level2'],
-        templates: {
-          header: 'Hierarchical categories'
-        }
-      })
-    );
-
-     search.addWidget(
-        instantsearch.widgets.refinementList({
-          container: '#brands-container--refinementList',
-          attributeName: 'brand',
-          operator: 'or',
-          limit: 5,
-          templates: {
-            header: 'Brands (refinementList)'
-          },
-          showMore: {
-            limit: 15
-          }
-        })
-      );
-/*
-      search.addWidget(
-        instantsearch.widgets.menu({
-          container: '#brands-container--menu',
-          attributeName: 'brand',
-          limit: 5,
-          templates: {
-            header: 'Brands (menu)'
-          }
-        })
-      );
-*/
-      search.start();
+            /*
+            search.addWidget(
+            persooInstantSearch.widgets.menu({
+              container: '#brands-container--menu',
+              attributeName: 'brand',
+              limit: 5,
+              templates: {
+                header: 'Brands (menu)'
+              }
+            })
+            );
+            */
+            search.start();
+        }, 1000);
     </script>
     <style>
         .ais-hits {
@@ -265,6 +243,24 @@
             max-width: 150px;
             max-height: 150px;
         }
+        .facet-count {
+            margin-left: 4px;
+            color: #888;
+            text-decoration: none;
+        }
+        .facet-count:before {
+            content: "("
+        }
+        .facet-count:after {
+            content: ")"
+        }
+        #current-refined-values a {
+            text-decoration: none;
+        }
+        #current-refined-values .ais-current-refined-values--item > a > div:before {
+            content: "\d7";
+            margin-right: 5px;
+        }
     </style>
-  </body>
+</body>
 </html>

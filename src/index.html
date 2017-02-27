@@ -56,25 +56,39 @@
     <div id="mainContent">
         <h1>Persoo Search Results Demo</h1>
         <div style="display:flex">
-            <div style="flex: 1;">
+            <div id="filters" style="flex: 1;">
                 <p>Filters:</p>
                 <input type="text" id="search-box" />
+                <div id="clear-all"></div>
+                <div id="current-refined-values"></div>
                 <div id="categories-container"></div>
                 <div id="brands-container--menu"></div>
                 <div id="brands-container--refinementList"></div>
+                <div id="gender-container--refinementList"></div>
             </div>
             <div style="flex: 4;">
                 <p>Results:</p>
                 <div id="hits-container"></div>
-                <div id="pagination-container"></div>
+                <div style="display: flex">
+                    <div id="pagination-container" style="flex:1;"></div>
+                    <div id="hits-per-page-selector" style="flex:1;margin:auto;"></div>
+                </div>
             </div>
         </div>
     </div>
+    <style>
+        #filters > div {
+            margin-bottom: 20px;
+        }
+    </style>
 
     <script>
     /* Notes:
         https://community.algolia.com/instantsearch.js/documentation/
         https://community.algolia.com/algoliasearch-helper-js/concepts.html
+
+        Example CSS
+        https://community.algolia.com/instantsearch.js/examples/e-commerce/main.css
     */
         setTimeout(function() {
             var persooAlgorithmID = "df76f605499f42e092a888cc62c057ae";
@@ -83,27 +97,59 @@
             });
 
             search.addWidget(
-            persooInstantSearch.widgets.searchBox({
-              container: '#search-box',
-              placeholder: 'Search for products...'
-            })
+                persooInstantSearch.widgets.searchBox({
+                    container: '#search-box',
+                    placeholder: 'Search for products...'
+                })
             );
 
             search.addWidget(
-            persooInstantSearch.widgets.hits({
-              container: '#hits-container',
-              hitsPerPage: 10,
-              templates: {
-                item: '<img src={{imageLink}}><div>{{title}}</div><div>{{price}} Kč</div>'
-              }
-            })
+                persooInstantSearch.widgets.clearAll({
+                    container: '#clear-all',
+                    templates: {
+                        link: 'Reset everything but fulltext'
+                    },
+                    autoHideContainer: false
+                })
+            );
+            search.addWidget(
+                persooInstantSearch.widgets.currentRefinedValues({
+                    container: '#current-refined-values',
+                    clearAll: 'after',
+                    cssClasses: {
+                        count: "facet-count"
+                    }
+                })
             );
 
             search.addWidget(
-            persooInstantSearch.widgets.pagination({
-              container: '#pagination-container'
-            })
+                persooInstantSearch.widgets.hits({
+                    container: '#hits-container',
+                    hitsPerPage: 12,
+                    templates: {
+                        item: '<img src={{imageLink}}><div title={{description}}>{{title}}</div><div>{{price}} Kč</div>'
+                    }
+                })
             );
+
+            search.addWidget(
+                persooInstantSearch.widgets.pagination({
+                    container: '#pagination-container'
+                })
+            );
+            search.addWidget(
+                persooInstantSearch.widgets.hitsPerPageSelector({
+                    container: '#hits-per-page-selector',
+                    options: [
+                        {value: 6, label: '6 per page'},
+                        {value: 12, label: '12 per page'},
+                        {value: 24, label: '24 per page'},
+                        {value: 30, label: '30 per page'}
+                    ]
+                    // default is defined in hits widget
+                })
+            );
+
             /*
             search.addWidget(
             persooInstantSearch.widgets.menu({
@@ -119,29 +165,52 @@
             */
 
             search.addWidget(
-            persooInstantSearch.widgets.hierarchicalMenu({
-            container: '#categories-container',
-            attributes: ['category_level0', 'category_level1', 'category_level2'],
-            templates: {
-              header: 'Hierarchical categories'
-            }
-            })
+                persooInstantSearch.widgets.hierarchicalMenu({
+                    container: '#categories-container',
+                    attributes: ['category_level0', 'category_level1', 'category_level2'],
+                    templates: {
+                        header: 'Hierarchical categories'
+                    },
+                    cssClasses: {
+                        count: "facet-count"
+                    }
+                })
             );
 
             search.addWidget(
-            persooInstantSearch.widgets.refinementList({
-              container: '#brands-container--refinementList',
-              attributeName: 'brand',
-              operator: 'or',
-              limit: 5,
-              templates: {
-                header: 'Brands (refinementList)'
-              },
-              showMore: {
-                limit: 15
-              }
-            })
+                persooInstantSearch.widgets.refinementList({
+                    container: '#brands-container--refinementList',
+                    attributeName: 'brand',
+                    operator: 'or',
+                    limit: 5,
+                    templates: {
+                        header: 'Brands (refinementList)'
+                    },
+                    showMore: {
+                        limit: 15
+                    },
+                    cssClasses: {
+                        count: "facet-count"
+                    }
+                })
             );
+
+            search.addWidget(
+                persooInstantSearch.widgets.refinementList({
+                    container: '#gender-container--refinementList',
+                    attributeName: 'gender',
+                    operator: 'or',
+                    limit: 5,
+                    templates: {
+                        header: 'Gender (refinementList)'
+                    },
+                    showMore: false,
+                    cssClasses: {
+                        count: "facet-count"
+                    }
+                })
+            );
+
             /*
             search.addWidget(
             persooInstantSearch.widgets.menu({
@@ -172,6 +241,24 @@
         .ais-hits--item > img {
             max-width: 150px;
             max-height: 150px;
+        }
+        .facet-count {
+            margin-left: 4px;
+            color: #888;
+            text-decoration: none;
+        }
+        .facet-count:before {
+            content: "("
+        }
+        .facet-count:after {
+            content: ")"
+        }
+        #current-refined-values a {
+            text-decoration: none;
+        }
+        #current-refined-values .ais-current-refined-values--item > a > div:before {
+            content: "\d7";
+            margin-right: 5px;
         }
     </style>
 </body>

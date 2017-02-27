@@ -112,6 +112,23 @@ function throttle(callback, limit) {
     }
 }
 
+function hashCode(str) {
+  var hash = 0,
+    i, l, char;
+  if (str.length == 0) return hash;
+  for (i = 0, l = str.length; i < l; i++) {
+    char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
+
+/** Debug() is simply consol.log() which can be muted. */
+function DEBUG() {
+    console.log.apply(this, arguments); // Comment me to disable debug
+}
+
 export {
     convertToReactComponent,
     getHighlightingFunc,
@@ -122,5 +139,8 @@ export {
     mergeObjects,
     normalizeQuery,
 
-    throttle
+    throttle,
+
+    hashCode,
+    DEBUG
 }
