@@ -62,6 +62,7 @@
                 <div style="display: flex">
                     <div id="pagination-container" style="flex:1;"></div>
                     <div id="hits-per-page-selector" style="flex:1;margin:auto;"></div>
+                    <div id="stats-container" style="flex:1;margin: auto"></div>
                 </div>
             </div>
         </div>
@@ -138,6 +139,11 @@
                         {value: 30, label: '30 per page'}
                     ]
                     // default is defined in hits widget
+                })
+            );
+            search.addWidget(
+                persooInstantSearch.widgets.stats({
+                    container: '#stats-container'
                 })
             );
 

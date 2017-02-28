@@ -28,26 +28,44 @@ function translateResponse(data, persooEventProps) {
     return result;
 }
 
+function parseExternalRequestID(str) {
+    var parts = str.split('_');
+    return {
+        number: parseInt(parts[0]),
+        pos: parseInt(parts[1]),
+    }
+}
+
 function createMergePersooResponsesToBatchCallback(algoliaCallback, requestsCount, cache) {
     var receivedRequestCount = 0;
     var results = [];
     var isError = false;
 
-    // FIXME pass eventNumber not to mix requests
     return function(persooEventProps, queryHash, data){
         receivedRequestCount ++;
         cache.set(queryHash, data);
 
-        var receivedData;
-        if (data) {
-            receivedData = translateResponse(data, persooEventProps)
+        var externalRequestID = parseExternalRequestID(persooEventProps.externalRequestID);
+        var receivedExternalRequestID = parseExternalRequestID(data.externalRequestID);
+
+        if (externalRequestID.number == receivedExternalRequestID.number) {
+            var receivedData;
+            if (data) {
+                receivedData = translateResponse(data, persooEventProps)
+            } else {
+                receivedData = translateResponse({}, persooEventProps);
+            }
+            results[receivedExternalRequestID.pos] = receivedData;
+
+            DEBUG('... Receiving data ' + data.externalRequestID + ' from Persoo: ' + data.items.length + ' items.')
+            if  (externalRequestID.pos != receivedExternalRequestID.pos) {
+                console.error(' Requested part ' + externalRequestID.pos + ' but received part ' +  receivedExternalRequestID.pos + '!');
+            }
+        } else if (externalRequestID.number > receivedExternalRequestID.number) {
+            DEBUG('... Receiving and ignoring old data ' + data.externalRequestID + ' from Persoo.');
         } else {
-            receivedData = translateResponse({}, persooEventProps);
+            DEBUG('... Ops, receiving future data ' + data.externalRequestID + ' from Persoo.');
         }
-        results.push(receivedData);
-
-        DEBUG('... Receiving data from Persoo: '+ JSON.stringify(data.items.length) + ' items.');
-
         if (receivedRequestCount >= requestsCount) {
             algoliaCallback(isError, {results: results});
         }
@@ -102,12 +120,18 @@ export default class PersooInstantSearchClient {
     constructor(options) {
         this.options = options;
         this.cache = new Cache();
+        this.statistics = {
+            batchRequestCount: 0
+        }
 
         var cache = this.cache;
+        var statistics = this.statistics;
         return {
             addAlgoliaAgent: function(){},
             search: function(requests, algoliaCallback) {
                 DEBUG('persooInstantSearchClient.search(' + JSON.stringify(requests) + ')');
+
+                statistics.batchRequestCount++;
 
                 // Algolia Client accepts batch requests, i.e. list of requests, one request is i.e.
                 // [{"indexName":"YourIndexName","params":{"query":"a","hitsPerPage":20,"page":0,"facets":[],"tagFilters":""}}]
@@ -119,12 +143,16 @@ export default class PersooInstantSearchClient {
                     // var indexName = request.indexName;
 
                     var persooProps = preparePersooRequestProps(options, params);
-                    var queryHash = hashCode(JSON.stringify(persooProps));
+                    var queryHash = hashCode(JSON.stringify(persooProps)); // without requestID
+                    var externalRequestID = statistics.batchRequestCount + '_' + i;
+                    persooProps.externalRequestID = externalRequestID;
+
                     DEBUG('... persoo.send('  + JSON.stringify(persooProps) + ')');
 
                     var cachedResponse = cache.get(queryHash);
                     if (cachedResponse) {
                         DEBUG('... Serving data from cache: '+ JSON.stringify(cachedResponse.items.length) + ' items.');
+                        cachedResponse.externalRequestID = externalRequestID;
                         mergeCallback(persooProps, queryHash, cachedResponse);
                     } else {
                         persoo('send', persooProps, mergeCallback.bind(this, persooProps, queryHash) );
