@@ -49,6 +49,6 @@ MIT
 Using libraries:
 *  instantsearch.js 1.11.1 | © Algolia Inc. and other contributors; Licensed MIT | github.com/algolia/instantsearch.js
 
-[Demo]: <http://htmlpreview.github.io/?https://github.com/persoo/persoo-instantsearch/blob/master/demo/index.html>
+[Demo]: <https://rawgit.com/persoo/persoo-instantsearch/master/demo/index.html>
 [persooInstantSearch.js]: <./dist/persooInstantSearch.js>
 [BEM naming standarts]: <http://getbem.com/naming/>
