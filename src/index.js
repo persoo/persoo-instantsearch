@@ -11,8 +11,9 @@ function createInstantSearchConnector(options) {
         return instantsearch({
             appId: 'noAppID',
             apiKey: 'noAPIKey',
-            indexName: 'persooIndex',
-            createAlgoliaClient: function(algoliasearch, appId, apiKey) { return searchClient; }
+            indexName: 'persoo',
+            createAlgoliaClient: function(algoliasearch, appId, apiKey) { return searchClient; },
+            urlSync: options.urlSync || false
         });
 }
 
