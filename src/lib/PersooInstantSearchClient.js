@@ -12,10 +12,10 @@ function translateResponse(data, persooEventProps) {
     }
     var result =  {
         hits: data.items,
-        hitsPerPage: data.pageSize,
+        hitsPerPage: data.itemsPerPage || data.pageSize, // FIXME clean this in version persoo-0.29
         page: data.page,
-        nbHits: data.totalHits,
-        nbPages: data.pages,
+        nbHits: data.itemsCount || data.totalHits,
+        nbPages: data.pagesCount || data.pages,
         query: persooEventProps.query,
         index: persooEventProps.index,
         facets: {}
@@ -45,26 +45,31 @@ function createMergePersooResponsesToBatchCallback(algoliaCallback, requestsCoun
         receivedRequestCount ++;
         cache.set(queryHash, data);
 
-        var externalRequestID = parseExternalRequestID(persooEventProps.externalRequestID);
-        var receivedExternalRequestID = parseExternalRequestID(data.externalRequestID);
-
-        if (externalRequestID.number == receivedExternalRequestID.number) {
-            var receivedData;
-            if (data) {
-                receivedData = translateResponse(data, persooEventProps)
-            } else {
-                receivedData = translateResponse({}, persooEventProps);
-            }
-            results[receivedExternalRequestID.pos] = receivedData;
-
-            DEBUG('... Receiving data ' + data.externalRequestID + ' from Persoo: ' + data.items.length + ' items.')
-            if  (externalRequestID.pos != receivedExternalRequestID.pos) {
-                console.error(' Requested part ' + externalRequestID.pos + ' but received part ' +  receivedExternalRequestID.pos + '!');
-            }
-        } else if (externalRequestID.number > receivedExternalRequestID.number) {
-            DEBUG('... Receiving and ignoring old data ' + data.externalRequestID + ' from Persoo.');
+        if (typeof data.itemsCount == 'undefined' || typeof data.externalRequestID == 'undefined') {
+            isError = true;
+            console.log("Persoo server response: does not contain requiered data. Do you call existing algorithmID?");
         } else {
-            DEBUG('... Ops, receiving future data ' + data.externalRequestID + ' from Persoo.');
+            var externalRequestID = parseExternalRequestID(persooEventProps.externalRequestID);
+            var receivedExternalRequestID = parseExternalRequestID(data.externalRequestID);
+
+            if (externalRequestID.number == receivedExternalRequestID.number) {
+                var receivedData;
+                if (data) {
+                    receivedData = translateResponse(data, persooEventProps)
+                } else {
+                    receivedData = translateResponse({}, persooEventProps);
+                }
+                results[receivedExternalRequestID.pos] = receivedData;
+
+                DEBUG('... Receiving data ' + data.externalRequestID + ' from Persoo: ' + data.items.length + ' items.')
+                if  (externalRequestID.pos != receivedExternalRequestID.pos) {
+                    console.error(' Requested part ' + externalRequestID.pos + ' but received part ' +  receivedExternalRequestID.pos + '!');
+                }
+            } else if (externalRequestID.number > receivedExternalRequestID.number) {
+                DEBUG('... Receiving and ignoring old data ' + data.externalRequestID + ' from Persoo.');
+            } else {
+                DEBUG('... Ops, receiving future data ' + data.externalRequestID + ' from Persoo.');
+            }
         }
         if (receivedRequestCount >= requestsCount) {
             algoliaCallback(isError, {results: results});
@@ -72,14 +77,14 @@ function createMergePersooResponsesToBatchCallback(algoliaCallback, requestsCoun
     }
 }
 
-
 function preparePersooRequestProps(options, params) {
     var persooProps = {
         _e: "getRecommendation",
         _w: "getRecommendation",
         algorithmID: options.algorithmID,
         query: params.query,
-        pageSize: params.hitsPerPage,
+        pageSize: params.hitsPerPage,  // FIXME clean this in version persoo-0.29
+        itemsPerPage: params.hitsPerPage,
         page: params.page,
         index: "products",
 

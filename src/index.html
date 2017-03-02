@@ -29,11 +29,14 @@
             pageType: 'search'
         }];
         var persooConfig = {
-            apikey: 'n6i5ne3i0p2tkkvm1275lapv',
+            // apikey: 'n6i5ne3i0p2tkkvm1275lapv',  // hanibal.cz (production)
+            apikey: 'g8i7fdao17r5fpn2u72ph4rd',     // hanibal.cz (test-a clone)
             persooName: 'persoo',
             dataLayerName: 'dataLayer',
             settings_tolerance: 2000,  // for loading persoo.js
             personalizations_tolerance: 2500,    // for showing personalizations
+            rtpHostname: "rtp-test-a.persoo.cz:8081",
+            scriptsHostname: "//s3-eu-west-1.amazonaws.com/cz.persoo.test-a.javascripts/"
         };
 
         /*! Persoo js client 2015-03-16 */
@@ -94,7 +97,8 @@
         setTimeout(function() {
             var persooAlgorithmID = "df76f605499f42e092a888cc62c057ae";
             var search = persooInstantSearch({
-              algorithmID: "df76f605499f42e092a888cc62c057ae",
+              // algorithmID: "df76f605499f42e092a888cc62c057ae", // hanibal.cz (production)
+              algorithmID: "f720547c3be047b1bd55b650f3b18fa2",    // hanibal.cz (test-a clone)
               urlSync: true
             });
 
