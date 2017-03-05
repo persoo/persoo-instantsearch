@@ -140,9 +140,12 @@ export default class PersooInstantSearchClient {
 
                 // Algolia Client accepts batch requests, i.e. list of requests, one request is i.e.
                 // [{"indexName":"YourIndexName","params":{"query":"a","hitsPerPage":20,"page":0,"facets":[],"tagFilters":""}}]
+
+                // Note: send requests to Persoo in opposite order, so the primary requests is the last because of algorithm
+                // debugging in Persoo. (widget waits for all requests before rerendering, so it does not matter)
                 var requestsCount = requests.length;
                 var mergeCallback = createMergePersooResponsesToBatchCallback(algoliaCallback, requestsCount, cache)
-                for (var i = 0; i < requestsCount; i++) {
+                for (var i = requestsCount - 1; i >= 0; i--) {
                     var request = requests[i];
                     var params = request.params;
                     // var indexName = request.indexName;
