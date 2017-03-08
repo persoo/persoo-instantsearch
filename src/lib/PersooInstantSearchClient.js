@@ -12,10 +12,10 @@ function translateResponse(data, persooEventProps) {
     }
     var result =  {
         hits: data.items,
-        hitsPerPage: data.itemsPerPage || data.pageSize, // FIXME clean this in version persoo-0.29
+        hitsPerPage: data.itemsPerPage,
         page: data.page,
-        nbHits: data.itemsCount || data.totalHits,
-        nbPages: data.pagesCount || data.pages,
+        nbHits: data.itemsCount,
+        nbPages: data.pagesCount,
         query: persooEventProps.query,
         index: persooEventProps.index,
         facets: {}
@@ -83,7 +83,6 @@ function preparePersooRequestProps(options, params) {
         _w: "getRecommendation",
         algorithmID: options.algorithmID,
         query: params.query,
-        pageSize: params.hitsPerPage,  // FIXME clean this in version persoo-0.29
         itemsPerPage: params.hitsPerPage,
         page: params.page,
         index: "products",
