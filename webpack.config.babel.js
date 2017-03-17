@@ -81,8 +81,20 @@ module.exports = {
             publicPath: '/'
         })
     ]).concat(ENV==='production' ? [
-        new webpack.optimize.OccurenceOrderPlugin()
-    ] : []),
+        new webpack.optimize.OccurenceOrderPlugin(),
+        new webpack.optimize.UglifyJsPlugin({
+            compress: { warnings: false },
+            global_defs: { DEBUG: false }
+        }),
+        new webpack.BannerPlugin("persooInstantsearch 1.0; build from " + (new Date()).toISOString() +
+                "\n© Persoo, s.r.o; Licensed MIT | github.com/persoo/persoo-instantsearch." +
+                "\nWrapper, extensions, improvements to Algolia's instantsearch.js.", {})
+    ] : [
+        new webpack.optimize.UglifyJsPlugin({
+            compress: { warnings: true },
+            global_defs: { DEBUG: true }
+        })
+    ]),
 
     stats: { colors: true },
 

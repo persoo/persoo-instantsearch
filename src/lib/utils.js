@@ -124,11 +124,6 @@ function hashCode(str) {
   return hash;
 };
 
-/** Debug() is simply consol.log() which can be muted. */
-function DEBUG() {
-    console.log.apply(this, arguments); // Comment me to disable debug
-}
-
 export {
     convertToReactComponent,
     getHighlightingFunc,
@@ -141,6 +136,5 @@ export {
 
     throttle,
 
-    hashCode,
-    DEBUG
+    hashCode
 }

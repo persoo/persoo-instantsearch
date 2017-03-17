@@ -1,5 +1,5 @@
 import Cache from 'cache';
-import {normalizeQuery, throttle, hashCode, DEBUG} from 'utils';
+import {normalizeQuery, throttle, hashCode} from 'utils';
 
 function translateResponse(data, persooEventProps) {
     function translateAggregationGroup(aggregationsGroup) {
@@ -61,14 +61,21 @@ function createMergePersooResponsesToBatchCallback(algoliaCallback, requestsCoun
                 }
                 results[receivedExternalRequestID.pos] = receivedData;
 
-                DEBUG('... Receiving data ' + data.externalRequestID + ' from Persoo: ' + data.items.length + ' items.')
+                if (DEBUG) { console.log('... Receiving data ' + data.externalRequestID + ' from Persoo: ' +
+                            data.items.length + ' items.');
+                }
                 if  (externalRequestID.pos != receivedExternalRequestID.pos) {
-                    console.error(' Requested part ' + externalRequestID.pos + ' but received part ' +  receivedExternalRequestID.pos + '!');
+                    console.error(' Requested part ' + externalRequestID.pos + ' but received part ' +
+                            receivedExternalRequestID.pos + '!');
                 }
             } else if (externalRequestID.number > receivedExternalRequestID.number) {
-                DEBUG('... Receiving and ignoring old data ' + data.externalRequestID + ' from Persoo.');
+                if (DEBUG) { console.log('... Receiving and ignoring old data ' + data.externalRequestID +
+                        ' from Persoo.');
+                }
             } else {
-                DEBUG('... Ops, receiving future data ' + data.externalRequestID + ' from Persoo.');
+                if (DEBUG) { console.log('... Ops, receiving future data ' + data.externalRequestID +
+                        ' from Persoo.');
+                }
             }
         }
         if (receivedRequestCount >= requestsCount) {
@@ -133,7 +140,7 @@ export default class PersooInstantSearchClient {
         return {
             addAlgoliaAgent: function(){},
             search: function(requests, algoliaCallback) {
-                DEBUG('persooInstantSearchClient.search(' + JSON.stringify(requests) + ')');
+                if (DEBUG) { console.log('persooInstantSearchClient.search(' + JSON.stringify(requests) + ')'); }
 
                 statistics.batchRequestCount++;
 
@@ -154,11 +161,13 @@ export default class PersooInstantSearchClient {
                     var externalRequestID = statistics.batchRequestCount + '_' + i;
                     persooProps.externalRequestID = externalRequestID;
 
-                    DEBUG('... persoo.send('  + JSON.stringify(persooProps) + ')');
+                    if (DEBUG) { console.log('... persoo.send('  + JSON.stringify(persooProps) + ')'); }
 
                     var cachedResponse = cache.get(queryHash);
                     if (cachedResponse) {
-                        DEBUG('... Serving data from cache: '+ JSON.stringify(cachedResponse.items.length) + ' items.');
+                        if (DEBUG) { console.log('... Serving data from cache: ' +
+                            JSON.stringify(cachedResponse.items.length) + ' items.');
+                        }
                         cachedResponse.externalRequestID = externalRequestID;
                         mergeCallback(persooProps, queryHash, cachedResponse);
                     } else {
