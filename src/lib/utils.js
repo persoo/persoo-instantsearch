@@ -124,9 +124,21 @@ function hashCode(str) {
   return hash;
 };
 
+let highlightingCache = new Cache();
+
+function getCachedHighlightingFunc(query, elementName) {
+    const key = JSON.stringify({q:query, e:elementName});
+    let f = highlightingCache.get(key);
+    if (!f) {
+        f = getHighlightingFunc(query, elementName);
+        highlightingCache.set(key, f);
+    }
+    return f;
+}
+
 export {
     convertToReactComponent,
-    getHighlightingFunc,
+    getCachedHighlightingFunc,
 
     addEvent,
     removeEvent,
