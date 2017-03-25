@@ -1,5 +1,27 @@
 import { h, Component } from 'preact';
 
+import EJS from 'persoo-templates/lib/embeddedjs'
+import { getHighlightingFunc } from 'highlightUtils';
+import Cache from 'cache';
+
+/** Get function(data) returning rendered template.
+ *  Template is either ESJ or plain string */
+function getRenderFunction(template) {
+    let renderTemplateFunction;
+
+    if (template.indexOf('%>') >= 0) {
+        // its EmbeddedJS template
+        let ejsOptions = {
+            escape: function (str) {return str;}
+        };
+        renderTemplateFunction = EJS.compile(template, ejsOptions);
+    } else {
+        // plain string
+        renderTemplateFunction = function () { return template; };
+    }
+    return renderTemplateFunction;
+}
+
 /**
  * Convert simple HTML of result of template(props) call into React Component, which
  * can hold our classes, event listeners, ...
@@ -7,18 +29,45 @@ import { h, Component } from 'preact';
  * @return {ReactComponent}
  */
 function convertToReactComponent(template) {
-    // TODO use some templating engine, i.e. Hogan
-    let renderRawHTMLTemplate = template;
+    let renderTemplateFunction = template;
     if (typeof template == 'string') {
-        renderRawHTMLTemplate = function () {return template};
+        if (template.indexOf('%>') >= 0) {
+            // its EmbeddedJS template
+            let ejsOptions = {
+                escape: function (str) {return str;}
+            };
+            renderTemplateFunction = EJS.compile(template, ejsOptions);
+        } else {
+            // plain string
+            renderTemplateFunction = function () { return template; };
+        }
     }
-    // FIXME case when template is React Component
-    return function(props) {
+    // Note: caching is not neccessary, each React Component (class) is defined
+    // only once and remembers compiled template
+    var TemplateComponent = class extends AbstractCustomTemplate {
+        constructor(props) {
+            super(renderTemplateFunction, props);
+        }
+    }
+    return TemplateComponent;
+}
+
+class AbstractCustomTemplate extends Component {
+    constructor(renderTemplateFunction, props) {
+        super(props);
+        this.renderTemplateFunction = renderTemplateFunction;
+    }
+	render(props) {
         const {className, style, onMouseEnter, onMouseDown, onMouseLeave} = props;
-        return <div
-            dangerouslySetInnerHTML={{__html: renderRawHTMLTemplate(props)}}
-            {...{className, style, onMouseEnter, onMouseDown, onMouseLeave}}
-        />;
+        const rawHTML = this.renderTemplateFunction(props);
+        if (rawHTML) {
+            return <div
+                dangerouslySetInnerHTML={{__html: rawHTML}}
+                {...{className, style, onMouseEnter, onMouseDown, onMouseLeave}}
+            />;
+        } else {
+            return null;
+        }
     }
 }
 
@@ -55,32 +104,6 @@ function mergeObjects(obj1, obj2) {
 function normalizeQuery(str) {
     // strips leading whitespace and condenses all whitespace
     return (str || '').replace(/^\s*/g, '').replace(/\s{2,}/g, ' ');
-}
-
-function highlightTerms(str, terms, tagName) {
-    // escape special characters
-    terms = terms.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    const re = new RegExp("(" + search.split(' ').join('|') + ")", "gi");
-    return str.replace(re, "<" + tagName + ">$1</" + tagName + ">")
-}
-/**
- * Return compiled function for highlighting words from "terms" by wrapping matched terms in tagName.
- * I.e. highlight('hello', 'em') will produce '<em>hello</em> world' from 'hello world'.
- * @param {string} terms
- * @param {string} tagName
- */
-function getHighlightingFunc(terms, tagName) {
-    if (!terms) {
-        return function (str) {return str;}
-    }
-    // escape special characters
-    terms = terms.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    const regex = new RegExp("(" + terms.split(' ').join('|') + ")", "gi");
-    const replacement = "<" + tagName + ">$1</" + tagName + ">";
-
-    return function(str) {
-        return str.replace(regex, replacement);
-    };
 }
 
 /**
@@ -138,6 +161,7 @@ function getCachedHighlightingFunc(query, elementName) {
 
 export {
     convertToReactComponent,
+    getRenderFunction,
     getCachedHighlightingFunc,
 
     addEvent,

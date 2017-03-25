@@ -133,7 +133,9 @@
                     container: '#hits-container',
                     hitsPerPage: 12,
                     templates: {
-                        item: '<img src={{imageLink}}><div title={{description}}>{{title}}</div><div>{{price}} Kč</div>'
+                        item: persooInstantSearch.EJS(
+                            '<img src="<%= imageLink %>"><div title="<%= description %>""><%= title %></div><div><%= price %> Kč</div>'
+                        )
                     }
                 })
             );
