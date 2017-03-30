@@ -1,5 +1,5 @@
 import Cache from 'cache';
-import {normalizeQuery, throttle, hashCode} from 'utils';
+import {normalizeQuery, hashCode} from 'utils';
 
 function translateResponse(data, persooEventProps) {
     function translateAggregationGroup(aggregationsGroup) {
