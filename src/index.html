@@ -58,6 +58,7 @@
 <body>
     <div id="mainContent">
         <h1>Persoo Search Results Demo</h1>
+        <div id="header-container"></div>
         <div style="display:flex">
             <div id="filters" style="flex: 1;">
                 <p>Filters:</p>
@@ -106,6 +107,15 @@
                 persooInstantSearch.widgets.searchBox({
                     container: '#search-box',
                     placeholder: 'Search for products...'
+                })
+            );
+
+            search.addWidget(
+                persooInstantSearch.widgets.header({
+                    container: '#header-container',
+                    templates: {
+                        root: 'Your query is "<%= query %>" and there are <%= nbHits %> items found.'
+                    }
                 })
             );
 
