@@ -9,14 +9,23 @@ import HeaderWidget from './widgets/header';
 
 function createInstantSearchConnector(options) {
         const searchClient = new PersooInstantSearchClient(options);
-
-        return instantsearch({
+        let instantSearchOptions = {
             appId: 'noAppID',
             apiKey: 'noAPIKey',
             indexName: 'persoo',
             createAlgoliaClient: function(algoliasearch, appId, apiKey) { return searchClient; },
             urlSync: options.urlSync || false
-        });
+        };
+        if (options.hideOnEmptyQuery) {
+            instantSearchOptions.searchFunction = function(helper) {
+                const isEmptyQuery = (helper.getStateAsQueryString() == 'q=');
+                if (!isEmptyQuery) {
+                    helper.search();
+                }
+            };
+        }
+
+        return instantsearch(instantSearchOptions);
 }
 
 window.persooInstantSearch = createInstantSearchConnector;
