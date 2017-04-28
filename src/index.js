@@ -9,6 +9,7 @@ import HeaderWidget from './widgets/header';
 
 function createInstantSearchConnector(options) {
         const searchClient = new PersooInstantSearchClient(options);
+        let callbacks = {};
         let instantSearchOptions = {
             appId: 'noAppID',
             apiKey: 'noAPIKey',
@@ -19,13 +20,20 @@ function createInstantSearchConnector(options) {
         if (options.hideOnEmptyQuery) {
             instantSearchOptions.searchFunction = function(helper) {
                 const isEmptyQuery = (helper.getStateAsQueryString() == 'q=');
-                if (!isEmptyQuery) {
-                    helper.search();
+                if (isEmptyQuery) {
+                      callbacks.hide && callbacks.hide();
+                      return;
                 }
+                helper.search();
+                callbacks.show && callbacks.show();
             };
         }
 
-        return instantsearch(instantSearchOptions);
+        let instantSearchInstance = instantsearch(instantSearchOptions);
+        instantSearchInstance.setPersooCallback = function(name, func) {
+            callbacks[name] = func;
+        }
+        return instantSearchInstance;
 }
 
 window.persooInstantSearch = createInstantSearchConnector;
