@@ -4,6 +4,7 @@ require('offline-plugin/runtime').install();
 import instantsearch from 'instantsearch.js';
 import {getRenderFunction} from 'utils';
 
+import objectAssignPolyfill from 'objectAssignPolyfill';
 import PersooInstantSearchClient from 'PersooInstantSearchClient';
 import HeaderWidget from './widgets/header';
 
@@ -42,6 +43,9 @@ window.persooInstantSearch.EJS = getRenderFunction;
 // custom persoo widgets
 window.persooInstantSearch.widgets = instantsearch.widgets;
 instantsearch.widgets.header = HeaderWidget;
+
+// add all necessary polyfills
+objectAssignPolyfill();
 
 if (module.hot) {
     module.hot.accept('./lib/PersooInstantSearchClient', () => requestAnimationFrame(init) );
