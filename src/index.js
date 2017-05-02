@@ -2,7 +2,7 @@ require('offline-plugin/runtime').install();
 
 // import { h, render } from 'preact';
 import instantsearch from 'instantsearch.js';
-import {getRenderFunction} from 'utils';
+import {getRenderFunction, throttle} from 'utils';
 
 import objectAssignPolyfill from 'objectAssignPolyfill';
 import PersooInstantSearchClient from 'PersooInstantSearchClient';
@@ -39,6 +39,7 @@ function createInstantSearchConnector(options) {
 
 window.persooInstantSearch = createInstantSearchConnector;
 window.persooInstantSearch.EJS = getRenderFunction;
+window.persooInstantSearch.throttle = throttle;
 
 // custom persoo widgets
 window.persooInstantSearch.widgets = instantsearch.widgets;

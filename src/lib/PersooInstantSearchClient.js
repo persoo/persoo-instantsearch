@@ -1,5 +1,27 @@
 import Cache from 'cache';
-import {normalizeQuery, hashCode} from 'utils';
+import {normalizeQuery, hashCode, throttle} from 'utils';
+
+// const DEBUG = true;
+
+/**
+    How alolia instantsearch works:
+    https://github.com/algolia/algoliasearch-helper-js/blob/develop/src/algoliasearch.helper.js
+    helper.search() only builds search query from state and calls client.search(queries, dispatchCallback)
+
+    dispatchCallback([states, queryID], error, content)
+        first 2 params are bound so client.search() do not see them
+        if (error) do nothing
+        if (queryID received is too old, then throw it away and do nothing
+        else process content ... call 'results' event causing render()
+
+    Thus we do:
+        if there are too many request in the queue, then skip them (do nothing).
+        but make sure that results for final query will arrive, otherwise no render() is called.
+
+    TODO funther improvements: remember 'searching' status. In case server did not respond yet, do not trigger
+         search query and postpone it. (but have some max timelimit)
+*/
+
 
 function translateResponse(data, persooEventProps) {
     function translateAggregationGroup(aggregationsGroup) {
@@ -130,6 +152,7 @@ function preparePersooRequestProps(options, params) {
 export default class PersooInstantSearchClient {
     constructor(options) {
         this.options = options;
+        this.options.requestThrottlingInMs = this.options.requestThrottlingInMs || 200;
         this.cache = new Cache();
         this.statistics = {
             batchRequestCount: 0
@@ -137,45 +160,52 @@ export default class PersooInstantSearchClient {
 
         var cache = this.cache;
         var statistics = this.statistics;
-        return {
-            addAlgoliaAgent: function(){},
-            search: function(requests, algoliaCallback) {
-                if (DEBUG) { console.log('persooInstantSearchClient.search(' + JSON.stringify(requests) + ')'); }
 
-                statistics.batchRequestCount++;
+        function searchFunction(requests, algoliaCallback) {
+            if (DEBUG) { console.log('persooInstantSearchClient.search(' + JSON.stringify(requests) + ')'); }
 
-                // Algolia Client accepts batch requests, i.e. list of requests, one request is i.e.
-                // [{"indexName":"YourIndexName","params":{"query":"a","hitsPerPage":20,"page":0,"facets":[],"tagFilters":""}}]
+            statistics.batchRequestCount++;
 
-                // Note: send requests to Persoo in opposite order, so the primary requests is the last because of algorithm
-                // debugging in Persoo. (widget waits for all requests before rerendering, so it does not matter)
-                var requestsCount = requests.length;
-                var mergeCallback = createMergePersooResponsesToBatchCallback(algoliaCallback, requestsCount, cache)
-                for (var i = requestsCount - 1; i >= 0; i--) {
-                    var request = requests[i];
-                    var params = request.params;
-                    // var indexName = request.indexName;
+            // Algolia Client accepts batch requests, i.e. list of requests, one request is i.e.
+            // [{"indexName":"YourIndexName","params":{"query":"a","hitsPerPage":20,"page":0,"facets":[],"tagFilters":""}}]
 
-                    var persooProps = preparePersooRequestProps(options, params);
-                    var queryHash = hashCode(JSON.stringify(persooProps)); // without requestID
-                    var externalRequestID = statistics.batchRequestCount + '_' + i;
-                    persooProps.externalRequestID = externalRequestID;
+            // Note: send requests to Persoo in opposite order, so the primary requests is the last because of algorithm
+            // debugging in Persoo. (widget waits for all requests before rerendering, so it does not matter)
+            var requestsCount = requests.length;
+            var mergeCallback = createMergePersooResponsesToBatchCallback(algoliaCallback, requestsCount, cache)
+            for (var i = requestsCount - 1; i >= 0; i--) {
+                var request = requests[i];
+                var params = request.params;
+                // var indexName = request.indexName;
 
-                    if (DEBUG) { console.log('... persoo.send('  + JSON.stringify(persooProps) + ')'); }
+                var persooProps = preparePersooRequestProps(options, params);
+                var queryHash = hashCode(JSON.stringify(persooProps)); // without requestID
+                var externalRequestID = statistics.batchRequestCount + '_' + i;
+                persooProps.externalRequestID = externalRequestID;
 
-                    var cachedResponse = cache.get(queryHash);
-                    if (cachedResponse) {
-                        if (DEBUG) { console.log('... Serving data from cache: ' +
-                            JSON.stringify(cachedResponse.items.length) + ' items.');
-                        }
-                        cachedResponse.externalRequestID = externalRequestID;
-                        mergeCallback(persooProps, queryHash, cachedResponse);
-                    } else {
-                        persoo('send', persooProps, mergeCallback.bind(this, persooProps, queryHash) );
+                if (DEBUG) { console.log('... persoo.send('  + JSON.stringify(persooProps) + ')'); }
+
+                var cachedResponse = cache.get(queryHash);
+                if (cachedResponse) {
+                    if (DEBUG) { console.log('... Serving data from cache: ' +
+                        JSON.stringify(cachedResponse.items.length) + ' items.');
                     }
+                    cachedResponse.externalRequestID = externalRequestID;
+                    mergeCallback(persooProps, queryHash, cachedResponse);
+                } else {
+                    persoo('send', persooProps, mergeCallback.bind(this, persooProps, queryHash) );
+                    // empty 'data' in mergeCallback are interpretted as error
+                    persoo('onError', mergeCallback.bind(this, persooProps, queryHash, {}));
                 }
             }
+        }
 
+        // throttle requests for people who type extremly fast
+        var searchFunctionThrottled = throttle(searchFunction, this.options.requestThrottlingInMs, false);
+
+        return {
+            addAlgoliaAgent: function(){},
+            search: searchFunctionThrottled
         }
     }
 }
