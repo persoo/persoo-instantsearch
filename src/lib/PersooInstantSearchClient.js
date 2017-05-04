@@ -42,9 +42,20 @@ function translateResponse(data, persooEventProps) {
         index: persooEventProps.index,
         facets: {}
     };
-    for (var group in data.aggregations) {
-        if (persooEventProps.includeAggregations.indexOf(group) >= 0) {
-            result.facets[group] = translateAggregationGroup(data.aggregations[group]);
+    if (data.aggregations) {
+        // FIXME temporarily handle both formats ... data.aggregations.group + data.aggregations.terms.group
+        var dataAggregations = data.aggregations.terms || data.aggregations;
+        for (var group in dataAggregations) {
+            if (persooEventProps.includeAggregations.indexOf(group) >= 0) {
+                result.facets[group] = translateAggregationGroup(dataAggregations[group]);
+            }
+        }
+        if (data.aggregations.numeric) {
+            for (var group in data.aggregations.numeric) {
+                if (persooEventProps.includeAggregations.indexOf(group) >= 0) {
+                    result.facets_stats[group] = data.aggregations.numeric[group];
+                }
+            }
         }
     }
     return result;
