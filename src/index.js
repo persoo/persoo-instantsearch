@@ -23,7 +23,7 @@ function createInstantSearchConnector(options) {
                 const isEmptyQuery = (helper.getStateAsQueryString() == 'q=');
                 if (isEmptyQuery) {
                       callbacks.hide && callbacks.hide();
-                      return;
+                      /* Note: call search() even if hidden to update url params a input box query */
                 }
                 helper.search();
                 callbacks.show && callbacks.show();

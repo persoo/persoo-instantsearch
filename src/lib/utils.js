@@ -6,14 +6,14 @@ import Cache from 'cache';
 
 /** Get function(data) returning rendered template.
  *  Template is either ESJ or plain string */
-function getRenderFunction(template) {
+function getRenderFunction(template, options) {
     let renderTemplateFunction;
 
     if (template.indexOf('%>') >= 0) {
         // its EmbeddedJS template
-        let ejsOptions = {
-            escape: function (str) {return str;}
-        };
+        let ejsOptions = options || {};
+        ejsOptions.escape = function (str) {return str;}
+
         renderTemplateFunction = EJS.compile(template, ejsOptions);
     } else {
         // plain string
