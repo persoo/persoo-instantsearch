@@ -50,8 +50,9 @@ function translateResponse(data, persooEventProps) {
                 if (groupData.numeric) {
                     result.facets_stats[group] = groupData.numeric;
                     result.facets[group] = {"123": 123}; // algolia requires facet, too. So proivide value which nobody uses.
-                } else {
-                    // FIXME temporarily handle both formats ... data.aggregations.groupID + data.aggregations.groupID.terms
+                }
+                // FIXME temporarily handle both formats ... data.aggregations.groupID + data.aggregations.groupID.terms
+                if (groupData.terms || !groupData.numeric) {
                     result.facets[group] = translateAggregationGroup(groupData.terms || groupData);
                 }
             }
