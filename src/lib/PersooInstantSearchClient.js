@@ -40,20 +40,19 @@ function translateResponse(data, persooEventProps) {
         nbPages: data.pagesCount,
         query: persooEventProps.query,
         index: persooEventProps.index,
-        facets: {}
+        facets: {},
+        facets_stats: {}
     };
     if (data.aggregations) {
-        // FIXME temporarily handle both formats ... data.aggregations.group + data.aggregations.terms.group
-        var dataAggregations = data.aggregations.terms || data.aggregations;
-        for (var group in dataAggregations) {
+        for (var group in data.aggregations) {
             if (persooEventProps.includeAggregations.indexOf(group) >= 0) {
-                result.facets[group] = translateAggregationGroup(dataAggregations[group]);
-            }
-        }
-        if (data.aggregations.numeric) {
-            for (var group in data.aggregations.numeric) {
-                if (persooEventProps.includeAggregations.indexOf(group) >= 0) {
-                    result.facets_stats[group] = data.aggregations.numeric[group];
+                var groupData = data.aggregations[group];
+                if (groupData.numeric) {
+                    result.facets_stats[group] = groupData.numeric;
+                    result.facets[group] = {"123": 123}; // algolia requires facet, too. So proivide value which nobody uses.
+                } else {
+                    // FIXME temporarily handle both formats ... data.aggregations.groupID + data.aggregations.groupID.terms
+                    result.facets[group] = translateAggregationGroup(groupData.terms || groupData);
                 }
             }
         }
@@ -117,7 +116,9 @@ function createMergePersooResponsesToBatchCallback(algoliaCallback, requestsCoun
     }
 }
 
-function preparePersooRequestProps(options, params) {
+function preparePersooRequestProps(options, params, indexWithSort) {
+    // TODO send filters and numericFilters as query clauses to ProductSearch algoritm
+
     var persooProps = {
         _e: "getRecommendation",
         _w: "getRecommendation",
@@ -125,7 +126,7 @@ function preparePersooRequestProps(options, params) {
         query: params.query,
         itemsPerPage: params.hitsPerPage,
         page: params.page,
-        index: "products",
+        index: indexWithSort.replace(/_.*$/, ''),
 
         maxValuesPerFacet: params.maxValuesPerFacet,
         includeAggregations: params.facets || []
@@ -155,6 +156,33 @@ function preparePersooRequestProps(options, params) {
                 persooProps[field] = value;
             }
         }
+    }
+    // translate
+    //    "numericFilters":["price<=1548"]}
+    // to
+    //    persooProps["price_lte"]: 1548
+    var numericFilters = params.numericFilters || [];
+    for (var i = 0; i < numericFilters.length; i++) {
+        var num_parts = numericFilters[i].split(/\b/);
+        var num_field = num_parts[0];
+        var num_operator = num_parts[1];
+        var num_value = parseFloat(num_parts[2]);
+        var convertOp = {
+            '>': 'gt',
+            '<': 'lt',
+            '>=': 'gte',
+            '<=': 'lte'
+        };
+        persooProps[num_field + '_' + convertOp[num_operator]] = num_value;
+    }
+
+    // Get Sort options if any
+    var indexParts = indexWithSort.split('_');
+    if (indexParts.length > 2) {
+        var sortField = indexParts[indexParts.length - 2];
+        var sortOrder = indexParts[indexParts.length - 1];
+        persooProps.sortByField = sortField;
+        persooProps.sortOrder = (sortOrder.toLowerCase() == 'asc'); // FIXME shall we pass 'asc', 'desc'?
     }
 
     return persooProps;
@@ -187,9 +215,9 @@ export default class PersooInstantSearchClient {
             for (var i = requestsCount - 1; i >= 0; i--) {
                 var request = requests[i];
                 var params = request.params;
-                // var indexName = request.indexName;
+                var indexWithSort = request.indexName;
 
-                var persooProps = preparePersooRequestProps(options, params);
+                var persooProps = preparePersooRequestProps(options, params, indexWithSort);
                 var queryHash = hashCode(JSON.stringify(persooProps)); // without requestID
                 var externalRequestID = statistics.batchRequestCount + '_' + i;
                 persooProps.externalRequestID = externalRequestID;

@@ -14,7 +14,7 @@ function createInstantSearchConnector(options) {
         let instantSearchOptions = {
             appId: 'noAppID',
             apiKey: 'noAPIKey',
-            indexName: 'persoo',
+            indexName: options.indexName || 'products',
             createAlgoliaClient: function(algoliasearch, appId, apiKey) { return searchClient; },
             urlSync: options.urlSync || false
         };

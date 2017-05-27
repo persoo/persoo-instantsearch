@@ -67,6 +67,7 @@
                 <div id="current-refined-values"></div>
                 <div id="categories-container"></div>
                 <div id="brands-container--menu"></div>
+                <div id="price-container"></div>
                 <div id="brands-container--refinementList"></div>
                 <div id="gender-container--refinementList"></div>
             </div>
@@ -77,6 +78,7 @@
                     <div id="pagination-container" style="flex:1;"></div>
                     <div id="hits-per-page-selector" style="flex:1;margin:auto;"></div>
                     <div id="stats-container" style="flex:1;margin: auto"></div>
+                    <div id="sort-by-container" style="flex:1;margin: auto"></div>
                 </div>
             </div>
         </div>
@@ -100,6 +102,7 @@
             var search = persooInstantSearch({
               // algorithmID: "df76f605499f42e092a888cc62c057ae", // hanibal.cz (production)
               algorithmID: "f720547c3be047b1bd55b650f3b18fa2",    // hanibal.cz (test-a clone)
+              indexName: 'products',
               // hideOnEmptyQuery: true,
               requestThrottlingInMs: 200, // request throttling
               urlSync: true
@@ -136,6 +139,9 @@
                     clearAll: 'after',
                     cssClasses: {
                         count: "facet-count"
+                    },
+                    templates: {
+                        item: persooInstantSearch.EJS('<% var operator = operator || null; %><%= attributeName %> <%= operator %> <%= name %>')
                     }
                 })
             );
@@ -173,6 +179,17 @@
                 persooInstantSearch.widgets.stats({
                     container: '#stats-container'
                 })
+            );
+
+            search.addWidget(
+              persooInstantSearch.widgets.sortBySelector({
+                container: '#sort-by-container',
+                indices: [
+                  {name: 'products', label: 'Most relevant'},
+                  {name: 'products_price_asc', label: 'Lowest price'},
+                  {name: 'products_price_desc', label: 'Highest price'}
+                ]
+              })
             );
 
             /*
@@ -234,6 +251,21 @@
                         count: "facet-count"
                     }
                 })
+            );
+
+            search.addWidget(
+              persooInstantSearch.widgets.rangeSlider({
+                container: '#price-container',
+                attributeName: 'price',
+                templates: {
+                  header: 'Price'
+                },
+                tooltips: {
+                  format: function(rawValue) {
+                    return '$' + Math.round(rawValue).toLocaleString();
+                  }
+                }
+              })
             );
 
             /*
