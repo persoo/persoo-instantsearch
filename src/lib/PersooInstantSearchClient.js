@@ -183,7 +183,7 @@ function preparePersooRequestProps(options, params, indexWithSort) {
         var sortField = indexParts[indexParts.length - 2];
         var sortOrder = indexParts[indexParts.length - 1];
         persooProps.sortByField = sortField;
-        persooProps.sortOrder = (sortOrder.toLowerCase() == 'asc'); // FIXME shall we pass 'asc', 'desc'?
+        persooProps.sortOrder = sortOrder.toLowerCase();
     }
 
     return persooProps;
