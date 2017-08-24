@@ -73,12 +73,7 @@ module.exports = {
         new CopyWebpackPlugin([
             { from: './manifest.json', to: './' },
             { from: './favicon.ico', to: './' }
-        ]),
-        new OfflinePlugin({
-            relativePaths: false,
-            AppCache: false,
-            publicPath: '/'
-        })
+        ])
     ]).concat(ENV==='production' ? [
         new webpack.optimize.OccurenceOrderPlugin(),
         new webpack.optimize.UglifyJsPlugin({
@@ -89,6 +84,11 @@ module.exports = {
                 "\n© Persoo, s.r.o; Licensed MIT | github.com/persoo/persoo-instantsearch." +
                 "\nWrapper, extensions, improvements to Algolia's instantsearch.js.", {})
     ] : [
+        new OfflinePlugin({
+            relativePaths: false,
+            AppCache: false,
+            publicPath: '/'
+        }),
         new webpack.optimize.UglifyJsPlugin({
             compress: { warnings: true },
             global_defs: { DEBUG: true }
