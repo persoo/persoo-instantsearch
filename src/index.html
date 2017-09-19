@@ -68,6 +68,7 @@
                 <div id="categories-container"></div>
                 <div id="brands-container--menu"></div>
                 <div id="price-container"></div>
+                <div id="temperatur-container"></div>
                 <div id="brands-container--refinementList"></div>
                 <div id="gender-container--refinementList"></div>
             </div>
@@ -252,7 +253,7 @@
                     }
                 })
             );
-
+/*
             search.addWidget(
               persooInstantSearch.widgets.rangeSlider({
                 container: '#price-container',
@@ -267,6 +268,22 @@
                 }
               })
             );
+*/
+            search.addWidget(
+              persooInstantSearch.widgets.rangeSlider({
+                container: '#temperatur-container',
+                attributeName: 'temperatur',
+                templates: {
+                  header: 'Comfort temperatur'
+                },
+                tooltips: {
+                  format: function(rawValue) {
+                    return Math.round(rawValue).toLocaleString() + " 'C";
+                  }
+                }
+              })
+            );
+
 
             /*
             search.addWidget(

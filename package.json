@@ -1,6 +1,6 @@
 {
   "name": "persoo-instantsearch",
-  "version": "0.0.1",
+  "version": "0.8.0",
   "description": "Persoo instantsearch widget.",
   "scripts": {
     "dev": "cross-env NODE_ENV=development webpack-dev-server --inline --hot --progress",
@@ -65,6 +65,7 @@
     "webpack-dev-server": "^1.15.0"
   },
   "dependencies": {
+    "es6-symbol": "^3.1.1",
     "instantsearch.js": "^1.11.4",
     "preact": "^6.0.0",
     "preact-compat": "^3.0.0",

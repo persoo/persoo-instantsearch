@@ -1,6 +1,7 @@
 require('offline-plugin/runtime').install();
 
 // import { h, render } from 'preact';
+import 'es6-symbol/implement';
 import instantsearch from 'instantsearch.js';
 import {getRenderFunction, throttle} from 'utils';
 

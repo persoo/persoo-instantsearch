@@ -49,11 +49,13 @@ function translateResponse(data, persooEventProps) {
                 var groupData = data.aggregations[group];
                 if (groupData.numeric) {
                     result.facets_stats[group] = groupData.numeric;
-                    result.facets[group] = {"123": 123}; // algolia requires facet, too. So proivide value which nobody uses.
+                    var avg = groupData.numeric.avg || 0;
+                    result.facets[group] = {};
+                    result.facets[group][avg] = 1;
+                    // result.facets[group] = {"123": 123}; // algolia requires facet, too. So proivide value which nobody uses.
                 }
-                // FIXME temporarily handle both formats ... data.aggregations.groupID + data.aggregations.groupID.terms
                 if (groupData.terms || !groupData.numeric) {
-                    result.facets[group] = translateAggregationGroup(groupData.terms || groupData);
+                    result.facets[group] = translateAggregationGroup(groupData.terms);
                 }
             }
         }
