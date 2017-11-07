@@ -45,7 +45,7 @@ function translateResponse(data, persooEventProps) {
     };
     if (data.aggregations) {
         for (var group in data.aggregations) {
-            if (persooEventProps.includeAggregations.indexOf(group) >= 0) {
+            if (persooEventProps.aggregations.indexOf(group) >= 0) {
                 var groupData = data.aggregations[group];
                 if (groupData.numeric) {
                     result.facets_stats[group] = groupData.numeric;
@@ -119,12 +119,19 @@ function createMergePersooResponsesToBatchCallback(algoliaCallback, requestsCoun
     }
 }
 
-function preparePersooRequestProps(options, params, indexWithSort) {
-    // TODO send filters and numericFilters as query clauses to ProductSearch algoritm
+function addCustomRuleToQuery(query,field, operator, value) {
+    if (query && query.must) {
+        query.must.push({
+            type: "customRule",
+            fields: [field, operator, "value", JSON.stringify(value)]
+        });
+        // TODO: change it to new ProductSearch format
+    }
+}
 
+function preparePersooRequestProps(options, params, indexWithSort) {
     var persooProps = {
         _e: "getRecommendation",
-        _w: "getRecommendation",
         algorithmID: options.algorithmID,
         query: params.query,
         itemsPerPage: params.hitsPerPage,
@@ -132,9 +139,11 @@ function preparePersooRequestProps(options, params, indexWithSort) {
         index: indexWithSort.replace(/_.*$/, ''),
 
         maxValuesPerFacet: params.maxValuesPerFacet,
-        includeAggregations: params.facets || []
+        aggregations: (Array.isArray(params.facets) ? params.facets : ((params.facets && [params.facets])  || []))
         // includeFields: []
+        // boolQuery: {}
     };
+    var boolQuery = {must:[]};
     // translate
     //     "facetFilters":[["key:value1", "key:value2"]]}
     // to
@@ -159,6 +168,7 @@ function preparePersooRequestProps(options, params, indexWithSort) {
                 persooProps[field] = value;
             }
         }
+        addCustomRuleToQuery(boolQuery,field, '$in', persooProps[field]);
     }
     // translate
     //    "numericFilters":["price<=1548"]}
@@ -177,6 +187,11 @@ function preparePersooRequestProps(options, params, indexWithSort) {
             '<=': 'lte'
         };
         persooProps[num_field + '_' + convertOp[num_operator]] = num_value;
+        addCustomRuleToQuery(boolQuery, field, '$' + convertOp[num_operator], num_value);
+    }
+
+    if (boolQuery.must.length > 0) {
+        persooProps.boolQuery = boolQuery;
     }
 
     // Get Sort options if any
