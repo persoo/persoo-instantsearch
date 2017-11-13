@@ -187,7 +187,7 @@ function preparePersooRequestProps(options, params, indexWithSort) {
             '<=': 'lte'
         };
         persooProps[num_field + '_' + convertOp[num_operator]] = num_value;
-        addCustomRuleToQuery(boolQuery, field, '$' + convertOp[num_operator], num_value);
+        addCustomRuleToQuery(boolQuery, num_field, '$' + convertOp[num_operator], num_value);
     }
 
     if (boolQuery.must.length > 0) {
