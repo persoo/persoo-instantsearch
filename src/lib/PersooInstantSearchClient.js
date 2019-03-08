@@ -133,6 +133,8 @@ function preparePersooRequestProps(options, params, indexWithSort) {
     var persooProps = {
         _e: "getRecommendation",
         algorithmID: options.algorithmID,
+        offerID: options.offerID || "default",
+        locationID: options.locationID || "default",
         query: params.query,
         itemsPerPage: params.hitsPerPage,
         page: params.page,
