@@ -103,7 +103,7 @@ function mergeObjects(obj1, obj2) {
 
 function normalizeQuery(str) {
     // strips leading whitespace and condenses all whitespace
-    return (str || '').replace(/^\s*/g, '').replace(/\s{2,}/g, ' ');
+    return (str || '').replace(/<[^>]*>/g, ' ').replace(/^\s*/g, '').replace(/\s{2,}/g, ' ');
 }
 
 /**

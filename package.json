@@ -1,6 +1,6 @@
 {
   "name": "persoo-instantsearch",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Persoo instantsearch widget.",
   "scripts": {
     "dev": "cross-env NODE_ENV=development webpack-dev-server --inline --hot --progress",

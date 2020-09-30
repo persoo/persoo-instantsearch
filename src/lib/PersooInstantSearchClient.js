@@ -135,7 +135,7 @@ function preparePersooRequestProps(options, params, indexWithSort) {
         algorithmID: options.algorithmID,
         offerID: options.offerID || "default",
         locationID: options.locationID || "default",
-        query: params.query,
+        query: normalizeQuery(params.query),
         itemsPerPage: params.hitsPerPage,
         page: params.page,
         index: indexWithSort.replace(/_.*$/, ''),
